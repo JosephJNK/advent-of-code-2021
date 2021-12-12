@@ -14,7 +14,16 @@ def countIncreases(
   case Nil => increases
 }
 
-def doWork(readings: List[Int32]): Int32 = {
+def slidingWindow(nums: List[Int32]): List[Int32] = {
+  match nums {
+    case a :: b :: c :: tail => (a + b + c) :: slidingWindow(b :: c :: tail)
+    case _ => Nil
+  }
+}
+
+def part2(readings: List[Int32]): Int32 = part1(slidingWindow(readings))
+
+def part1(readings: List[Int32]): Int32 = {
   match readings {
     case head :: tail => countIncreases(tail, head, 0)
     case Nil => 0
@@ -27,7 +36,10 @@ def main(_args: Array[String]): Int32 & Impure =
     |> Result.flatMap(lines -> Result.traverse(Int32.fromString, lines));
 
   match linesResult {
-    case Ok(lines)  => println(doWork(lines))
+    case Ok(lines)  => {
+      println("part 1: ${part1(lines)}");
+      println("part 2: ${part2(lines)}")
+    }
     case Err(msg)   => print("Error ${msg}")
   };
   0 // exit code
