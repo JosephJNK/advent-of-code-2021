@@ -38,6 +38,63 @@ method mapArray2<S, T>(arr: array2<S>, fn: S -> T)
           requires 0 <= j < arr.Length1 => fn(arr[i, j]));
       }
 
+function method minus1(x: int): int { x - 1 }
+
+method twoDArrayToRows<T>(arr: array2<T>)
+  returns (result: array<array<T>>)
+  ensures result.Length == arr.Length1
+  ensures forall i :: 0 <= i < result.Length ==> result[i].Length == arr.Length0
+  ensures forall i, j :: 0 <= i < arr.Length1 && 0 <= j < arr.Length0 ==>
+      result[i][j] == arr[j, i]
+  {
+    if arr.Length1 == 0 {
+      result := new array<T>[0];
+      return;
+    }
+
+    result := new array<T>[arr.Length1];
+
+    result[0] := new T[arr.Length0](j
+        reads arr
+        requires 0 <= j < arr.Length0 => arr[j, 0]);
+
+    var i := 0;
+
+    while i < minus1(arr.Length1) && i < minus1(result.Length)
+      // bounds
+      invariant 0 <= i < arr.Length1
+      invariant 0 <= i < result.Length
+
+      // Length is correct
+      invariant result[i].Length == arr.Length0
+      invariant forall x :: 0 <= x < i ==> result[x].Length == arr.Length0;
+
+      // Contents are correct
+      invariant forall j :: 0 <= j < result[0].Length ==> result[0][j] == arr[j, 0];
+      invariant forall x, j :: 0 < x <= i && 0 <= j < arr.Length0 
+          ==> result[x][j] == arr[j, x]
+      {
+        i := i + 1;
+        result[i] := new T[arr.Length0](j
+          reads arr
+          requires 0 <= j < arr.Length0 => arr[j, i]);
+      }
+  }
+
+predicate contains?<T>(arr: array<T>, item: T)
+  reads arr {
+    exists i | 0 <= i < arr.Length :: arr[i] == item
+  }
+
+method filterArray<T>(arr: array<T>, fn: T -> bool)
+  returns (result: array<T>)
+  ensures forall i | 0 <= i < result.Length :: fn(result[i]) == true
+  ensures forall i | 0 <= i < result.Length :: contains?(arr, result[i])
+  ensures forall i | 0 <= i < arr.Length :: 
+      fn(arr[i]) == true ==> contains?(result, arr[i])
+
+datatype Bit = Zero | One
+
 method binaryToDecimal(binary: array<Bit>) returns (result: int) {
   result := 0;
 
@@ -49,76 +106,6 @@ method binaryToDecimal(binary: array<Bit>) returns (result: int) {
     }
   }
 }
-
-function method minus1(x: int): int { x - 1 }
-
-method twoDArrayToRows<T>(arr: array2<T>)
-  returns (result: array<array<T>>)
-  requires arr.Length0 > 0
-  requires arr.Length1 > 0
-  ensures result.Length == arr.Length1
-  ensures forall i :: 0 <= i < result.Length ==> result[i].Length == arr.Length0
-  ensures forall i, j :: 0 <= i < arr.Length1 && 0 <= j < arr.Length0 ==>
-      result[i][j] == arr[j, i]
-  {
-    var temp := new array<T>[arr.Length1];
-
-    temp[0] := new T[arr.Length0](j
-        reads arr
-        requires 0 <= j < arr.Length0 => arr[j, 0]);
-
-    assert temp[0].Length == arr.Length0;
-
-    var i := 0;
-
-    assert forall j :: 0 <= j < arr.Length0 ==> temp[0][j] == arr[j, 0];
-
-    while i < minus1(arr.Length1) && i < minus1(temp.Length)
-      invariant 0 <= i < arr.Length1
-      invariant temp.Length == arr.Length1
-      invariant 0 <= i < temp.Length
-      invariant temp[i].Length == arr.Length0
-      invariant temp[0].Length == arr.Length0
-      invariant forall x :: 0 <= x < i ==> temp[x].Length == arr.Length0;
-      invariant forall j :: 0 < j < temp[i].Length ==> temp[i][j] == arr[j, i]
-      invariant forall x, j :: 0 <= x < i && 0 < j < arr.Length0
-          ==> temp[x][j] == arr[j, x]
-      invariant forall j :: 0 < j < temp[0].Length ==> temp[0][j] == arr[j, 0];
-      {
-        ghost var beforeUpdate := temp[0];
-        assert forall j :: 0 < j < temp[0].Length ==> temp[0][j] == arr[j, 0];
-        assert forall j :: 0 < j < temp[0].Length ==> beforeUpdate[j] == arr[j, 0];
-
-        i := i + 1;
-        assert i > 0;
-        temp[i] := new T[arr.Length0](j
-          reads arr
-          requires 0 <= j < arr.Length0 => arr[j, i]);
-        
-        assert temp[0] == beforeUpdate;
-
-        assert forall j :: 0 < j < arr.Length0 ==> temp[0][j] == arr[j, 0];
-        assert forall j :: 0 < j < temp[0].Length ==> temp[0][j] == arr[j, 0];
-        assert forall j :: 0 < j < temp[i].Length ==> temp[i][j] == arr[j, i];
-        assert forall j :: 0 < j < arr.Length0 ==> temp[i][j] == arr[j, i];
-        assert forall x, j :: 0 <= x < i && 0 < j < arr.Length0
-            ==> temp[x][j] == arr[j, x];
-      }
-    assert i == arr.Length1 - 1;
-    assert temp[i].Length == arr.Length0;
-    assert temp[0].Length == arr.Length0;
-    assert forall j :: 0 < j < arr.Length0 ==> temp[i][j] == arr[j, i];
-    assert forall i :: 0 <= i < temp.Length ==> temp[i].Length == arr.Length0;
-
-    result := temp;
-    assert result.Length == temp.Length;
-    assert forall i :: 0 <= i < result.Length ==> result[i] == temp[i];
-    assert forall i, j :: 0 <= i < arr.Length1 && 0 <= j < arr.Length0 ==>
-      result[i][j] == temp[i][j];
-
-  }
-
-datatype Bit = Zero | One
 
 method Main() {
   var input := getInput();
